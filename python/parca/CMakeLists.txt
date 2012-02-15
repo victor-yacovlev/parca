@@ -9,24 +9,22 @@ set(SOURCES
   _custom_matrices.py
 )
 
-if(${CMAKE_INSTALL_PREFIX})
+if(APPLE)
     execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib').replace(sysconfig.get_path('data'),'${CMAKE_INSTALL_PREFIX}')+'/parca')"
+        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write('/Library/Python/'+sys.version[0:3]+'/site-packages/parca')"
+        OUTPUT_VARIABLE PYTHON_INSTALL_DIR
+    )
+elseif(WIN32)
+    execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib')+'/parca')"
         OUTPUT_VARIABLE PYTHON_INSTALL_DIR
     )
 else()
-    if(APPLE)
-		execute_process(
-		    COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write('/Library/Python/'+sys.version[0:3]+'/site-packages/parca')"
-		    OUTPUT_VARIABLE PYTHON_INSTALL_DIR
-		)
-	else()
-		execute_process(
-		    COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib')+'/parca')"
-		    OUTPUT_VARIABLE PYTHON_INSTALL_DIR
-		)
-	endif(APPLE)
-endif(${CMAKE_INSTALL_PREFIX})
+    execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib').replace(sys.prefix,'${CMAKE_INSTALL_PREFIX}')+'/parca')"
+        OUTPUT_VARIABLE PYTHON_INSTALL_DIR
+    )
+endif(APPLE)
 
 message("Pure python modules will be installed in "${PYTHON_INSTALL_DIR})
 
