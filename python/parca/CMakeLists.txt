@@ -15,10 +15,17 @@ if(${CMAKE_INSTALL_PREFIX})
         OUTPUT_VARIABLE PYTHON_INSTALL_DIR
     )
 else()
-    execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib')+'/parca')"
-        OUTPUT_VARIABLE PYTHON_INSTALL_DIR
-    )
+    if(APPLE)
+		execute_process(
+		    COMMAND ${PYTHON_EXECUTABLE} -c "import sys; sys.stdout.write('/Library/Python/'+sys.version[0:3]+'/site-packages/parca')"
+		    OUTPUT_VARIABLE PYTHON_INSTALL_DIR
+		)
+	else()
+		execute_process(
+		    COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib')+'/parca')"
+		    OUTPUT_VARIABLE PYTHON_INSTALL_DIR
+		)
+	endif(APPLE)
 endif(${CMAKE_INSTALL_PREFIX})
 
 message("Pure python modules will be installed in "${PYTHON_INSTALL_DIR})

@@ -1,3 +1,5 @@
+
+#include <Python.h>
 #include "_parca.h"
 #include "pareto.h"
 #include "matrix.h"
