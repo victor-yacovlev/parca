@@ -10,7 +10,9 @@ __all__ = [
     "get_pareto_alignments",
     "get_primary_alignments",
     "alignment_to_string",
-    "get_common_part"
+    "get_common_part",
+    "set_temporary_directory",
+    "get_last_error"
 ]
 
 for mn in available_matrices:

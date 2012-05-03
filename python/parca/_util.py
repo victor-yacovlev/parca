@@ -1,6 +1,6 @@
 A = 20.0
 
-def get_primary_alignments(alist):
+def __calculate_extrs(alist):
     tgS = [ (0, 0.0) ]
     for i in range(1, len(alist)-1):
         m_l = alist[i-1].m
@@ -33,14 +33,41 @@ def get_primary_alignments(alist):
         if len(extrs)<len(alist):
             extrs += [ (len(extrs), 0.0) ]
         assert len(extrs)==len(alist)
-        
+    return extrs
+
+def get_primary_alignments(alist):
+    extrs = __calculate_extrs(alist)
     extrs.sort(key=lambda value: value[1], reverse=True)
-    
-    result = []
-    
+    result = []   
     for number, value in extrs:
         result += [alist[number]]
     return result
+    
+def get_primary_points(alist):
+    return __calculate_extrs(alist)
+    
+def calculate_gops(alist):
+        minGOP = [ 0.0 ] * len(alist)
+        maxGOP = [ 99999999.9 ] * len(alist)
+        g = 0
+        while g < len(alist)-1:
+            g += 1
+            for c in range(g-1, -1, -1): # range [g-1, g-2, ... , 0]
+                deltaW = alist[g].m - alist[c].m
+                deltaG = alist[g].g - alist[c].g
+                nS = float(deltaW) / float(deltaG)
+                if nS < maxGOP[c]:
+                    t = c
+                    break
+                else:
+                    maxGOP[c] = None
+                    minGOP[c] = None
+            maxGOP[g] = nS
+            minGOP[t] = nS
+        result = []
+        for i in range(0, len(alist)):
+            result += [(minGOP[i],maxGOP[i])]
+        return result
     
 def alignment_to_string(source, mutant, 
                         alignment, other=None, weights=None, width=60):
@@ -49,7 +76,6 @@ def alignment_to_string(source, mutant,
     line3 = ""
     line4 = ""
     line5 = ""
-    W = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for i1, i2 in alignment:
         assert i1!=-1 or i2!=-1
         if i1!=-1 and i2!=-1:
@@ -58,7 +84,22 @@ def alignment_to_string(source, mutant,
             if source[i1]==mutant[i2]:
                 line2 += "|"
             else:
-                line2 += " "
+                a = source[i1]
+                b = source[i2]
+                w = None
+                if not weights is None:
+                    if weights.has_key((a,b)):
+                        w = weights[(a,b)]
+                    elif weights.has_key((b,a)):
+                        w = weights[(b,a)]
+                if not w is None:
+                    if w>=0:
+                        line2 += ":"
+                    else:
+                        line2 += "."
+                else:
+                    line2 += " "
+                
         elif i1==-1:
             line1 += "-"
             line2 += " "
@@ -72,11 +113,7 @@ def alignment_to_string(source, mutant,
                 line4 += "*"
             else:
                 line4 += " "
-        if not weights is None:
-            if weights.has_key((i1,i2)):
-                line5 += W[weights[(i1,i2)]]
-            else:
-                line5 += " "
+
     result = ""
     if width>0:
         fpe = 0

@@ -2,7 +2,12 @@
 #include <cstdlib>
 #include <cassert>
 #include <cstdio>
+#ifdef WIN32
 #include <boost/filesystem.hpp>
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 #include <set>
 
 Matrix::Matrix()
@@ -26,11 +31,21 @@ Matrix::Matrix(int rows, int columns, int limit, const std::string &swapFileName
     m_memoryStorageBeginIndex = 0;
     m_dropRowsMode = dropRows;
     m_file = 0;
+#ifdef WIN32
     m_filePath = boost::filesystem3::path(swapFileName);
+#else
+    m_filePath = swapFileName;
+#endif
     m_fileMode = FM_CLOSED;
     if (!m_dropRowsMode) {
+#ifdef WIN32
         if (boost::filesystem3::exists(m_filePath))
             boost::filesystem3::remove(m_filePath);
+#else
+        struct stat st;
+        if (stat(m_filePath.c_str(),&st)==0)
+            unlink(m_filePath.c_str());
+#endif
         m_indeces = std::vector< std::vector<int> >(rows, std::vector<int>(columns, -1));
         m_sizes = std::vector< std::vector<int> >(rows, std::vector<int>(columns, 0));
     }
@@ -51,8 +66,14 @@ Matrix::~Matrix()
 {
     if (m_file)
         fclose(m_file);
+#ifdef WIN32
     if (boost::filesystem3::exists(m_filePath))
         boost::filesystem3::remove(m_filePath);
+#else
+    struct stat st;
+    if (stat(m_filePath.c_str(),&st)==0)
+        unlink(m_filePath.c_str());
+#endif
     
     free(m_storedRows);
     free(m_firstColumn);
@@ -230,16 +251,23 @@ void Matrix::writeStorageToFile()
         m_fileMode = FM_CLOSED;
     }
     int index = 0;
+#ifdef WIN32
     if (boost::filesystem3::exists(m_filePath)) {
         index = boost::filesystem3::file_size(m_filePath);
     }
+#else
+    struct stat st;
+    if (stat(m_filePath.c_str(),&st)==0) {
+        index = st.st_size;
+    }
+#endif
     if (m_fileMode!=FM_WRITE) {
-#ifdef BOOST_WINDOWS_API
-		m_file = _wfopen(m_filePath.c_str(), L"w+");
+#ifdef WIN32
+	m_file = _wfopen(m_filePath.c_str(), L"w+");
 #else
         m_file = fopen(m_filePath.c_str(), "w+");
 #endif
-		m_fileMode = FM_WRITE;
+	m_fileMode = FM_WRITE;
     }
 
     // скидываем в файл memory storage

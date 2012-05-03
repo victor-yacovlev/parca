@@ -25,6 +25,7 @@ public:
     aligner(unsigned int limit, const std::string & process_id, unsigned int memory_usage);
     void init(unsigned int limit, const std::string & process_id, unsigned int memory_usage);
     void set_score_matrix(const matrix_t & matrix);
+    void set_temporary_directory(const std::string &path);
     void py_set_score_matrix(const boost::python::dict& d);
     void process_direct_stage(const std::wstring & SY, const std::wstring & SX);
     int result_count();

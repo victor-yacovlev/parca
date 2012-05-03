@@ -2,7 +2,13 @@
 #include <stdio.h>
 #include <iostream>
 #include <algorithm>
+#include <assert.h>
+#ifndef WIN32
+#include <sys/stat.h>
+#include <unistd.h>
+#else
 #include <boost/filesystem.hpp>
+#endif
 #include <set>
 
 Aligner::Aligner()
@@ -32,6 +38,11 @@ void Aligner::setScoreMatrix(const std::map<std::pair<wchar_t,wchar_t>, int32_t>
     scores = matrix;
 }
 
+void Aligner::setTempDir(const std::string &path)
+{
+    m_tempDir = path;
+}
+
 void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
 {
 
@@ -54,9 +65,9 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
         m_lastError = "Second sequence is empty";
         return;
     }
-    M  = new Matrix( SY.length()+1, SX.length()+1, m_limit, "aligner_"+m_processId+".main.swp", m_matrixInmemoryRows, false );
-    MX = new Matrix( SY.length()+1, SX.length()+1, m_limit, "aligner_"+m_processId+".x.swp", m_matrixInmemoryRows, false );
-    MY = new Matrix( SY.length()+1, SX.length()+1, m_limit, "aligner_"+m_processId+".y.swp", m_matrixInmemoryRows, false );
+    M  = new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".main.swp", m_matrixInmemoryRows, false );
+    MX = new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".x.swp", m_matrixInmemoryRows, false );
+    MY = new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".y.swp", m_matrixInmemoryRows, false );
 
     /* First element initialization */
 
@@ -257,7 +268,8 @@ int32_t Aligner::score(const wchar_t &ch1, const wchar_t &ch2)
 uint32_t Aligner::resultCount()
 {
     if (!m_directStageDone) {
-        m_lastError = "Direct stage of alignment not done";
+        if (m_lastError.length()==0)
+            m_lastError = "Direct stage of alignment not done";
         return 0;
     }
     int y = m_SY.length();
@@ -467,6 +479,7 @@ void Aligner::reset()
         delete MX;
     if (MY!=NULL)
         delete MY;
+#ifdef WIN32
     if (boost::filesystem3::exists("aligner_"+m_processId+".main.swp")) {
         boost::filesystem3::remove("aligner_"+m_processId+".main.swp");
     }
@@ -476,6 +489,18 @@ void Aligner::reset()
     if (boost::filesystem3::exists("aligner_"+m_processId+".y.swp")) {
         boost::filesystem3::remove("aligner_"+m_processId+".y.swp");
     }
+#else
+    struct stat st;
+    if (stat(std::string("aligner_"+m_processId+".main.swp").c_str(),&st)==0) {
+        unlink(std::string("aligner_"+m_processId+".main.swp").c_str());
+    }
+    if (stat(std::string("aligner_"+m_processId+".x.swp").c_str(),&st)==0) {
+        unlink(std::string("aligner_"+m_processId+".x.swp").c_str());
+    }
+    if (stat(std::string("aligner_"+m_processId+".y.swp").c_str(),&st)==0) {
+        unlink(std::string("aligner_"+m_processId+".y.swp").c_str());
+    }
+#endif
     M = MX = MY = NULL;
     m_lastError = "";
     m_directStageDone = false;

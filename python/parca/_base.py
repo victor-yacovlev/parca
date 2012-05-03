@@ -1,5 +1,6 @@
 import _parca
 import os
+import os.path
 
 from MatrixInfo import *
 
@@ -66,6 +67,7 @@ def get_pareto_alignments(sequence1, sequence2,
                           gep=1.0,
                           matrix=blosum62,
                           limit=40):
+    global _aligner
     process_direct_stage(sequence1,sequence2,gep,matrix,limit)
     cnt = _aligner.result_count()
     r = []
@@ -73,6 +75,15 @@ def get_pareto_alignments(sequence1, sequence2,
         c_al = _aligner.get_alignment(i)
         r += [alignment(c_al)]
     return r
+
+def set_temporary_directory(dirname):
+    global _aligner
+    normpath = os.path.abspath(dirname)
+    _aligner.set_temporary_directory(normpath.encode("utf-8"))
+
+def get_last_error():
+    global _aligner
+    return _aligner.get_last_error()
     
 # perform self-tests on import
 #_aligner.selftest_matrix_1()

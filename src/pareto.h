@@ -35,6 +35,7 @@ public:
     Aligner();
     void init(uint32_t limit, const std::string &processId, uint32_t matrixInmemoryRows);
     void setScoreMatrix(const matrix_t &matrix);
+    void setTempDir(const std::string &path);
     void directStage(const std::wstring &SY, const std::wstring &SX);
     uint32_t resultCount();
     std::deque< std::pair<int16_t,int16_t> > getAlignment(uint32_t no);
@@ -52,6 +53,7 @@ private:
     std::wstring m_SX;
     std::wstring m_SY;
     std::string m_lastError;
+    std::string m_tempDir;
     uint32_t m_limit;
     std::string m_processId;
     uint32_t m_matrixInmemoryRows;

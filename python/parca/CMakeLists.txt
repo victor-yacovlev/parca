@@ -7,6 +7,7 @@ set(SOURCES
   _base.py
   _util.py
   _custom_matrices.py
+  soap_server.py
 )
 
 if(APPLE)

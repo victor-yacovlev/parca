@@ -35,6 +35,11 @@ void aligner::set_score_matrix(const matrix_t & matrix)
 }
 
 
+void aligner::set_temporary_directory(const std::string & path)
+{
+    m_aligner->setTempDir(path);
+}
+
 
 void aligner::py_set_score_matrix(const boost::python::dict &d)
 {
@@ -174,6 +179,7 @@ BOOST_PYTHON_MODULE(_parca)
         .def("get_last_error", &aligner::get_last_error)
         .def("reset", &aligner::reset)
         .def("selftest_matrix_1", &aligner::selftest_matrix)
+        .def("set_temporary_directory", &aligner::set_temporary_directory)
     ;
 }
 

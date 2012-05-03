@@ -4,7 +4,9 @@
 #include "a.h"
 #include <string>
 #include <deque>
+#ifdef WIN32
 #include <boost/filesystem.hpp>
+#endif
 
 class Matrix
 {
@@ -26,7 +28,11 @@ class Matrix
     void writeStorageToFile();
     enum FileMode { FM_CLOSED, FM_OPEN, FM_WRITE };
     FILE * m_file;
+#ifdef WIN32
     boost::filesystem3::path m_filePath;
+#else
+    std::string m_filePath;
+#endif
     FileMode m_fileMode;
     A* m_storedRows;
     A* m_firstColumn;
