@@ -1,0 +1,134 @@
+#! /bin/sh
+#
+# /etc/init.d/parca_server
+#
+# Copyright (c) 2009, SUSE Linux Products GmbH Nuernberg, Germany.  All rights reserved.
+# Copyright (c) 2012, Victor Yacovlev, IMPB RAS, Puschino, Russia
+#
+#
+### BEGIN INIT INFO
+# Provides:		parca_server
+# Required-Start:	$network $mysql
+# Required-Stop:	$null
+# Default-Start:	2 3 5
+# Default-Stop:		0 1 6
+# Short-Description: Start PARCA SOAP service
+# Description: Start PARCA (from BioSymbol) service
+### END INIT INFO
+
+PARCA_SOAP_BIN=/usr/bin/bio_parca_soap_d
+test -x $PARCA_SOAP_BIN || exit 5
+
+PARCA_SOAP_CONFIG=/etc/biosymbol/parca_soap.conf
+test -f $PARCA_SOAP_CONFIG || exit 6
+
+PARCA_SOAP_HOST=`grep HOST ${PARCA_SOAP_CONFIG} | sed 's/^HOST=//'`
+PARCA_SOAP_PORT=`grep PORT ${PARCA_SOAP_CONFIG} | sed 's/^PORT=//'`
+PARCA_SOAP_DB=`grep DATABASE ${PARCA_SOAP_CONFIG} | sed 's/^DATABASE=//'`
+PARCA_SOAP_USER=`grep USER ${PARCA_SOAP_CONFIG} | sed 's/^USER=//'`
+PARCA_SOAP_GROUP=`grep GROUP ${PARCA_SOAP_CONFIG} | sed 's/^GROUP=//'`
+PARCA_PID_FILE=/var/run/biosymbol/parca_soap.pid
+PARCA_LOG_FILE=/var/log/biosymbol/parca_soap.log
+
+PARCA_ARGS="--host="${PARCA_SOAP_HOST}" --port="${PARCA_SOAP_PORT}" --db="${PARCA_SOAP_DB}" --log="${PARCA_LOG_FILE}" --pid="${PARCA_PID_FILE}
+
+# Shell functions sourced from /etc/rc.status:
+#      rc_check         check and set local and overall rc status
+#      rc_status        check and set local and overall rc status
+#      rc_status -v     ditto but be verbose in local rc status
+#      rc_status -v -r  ditto and clear the local rc status
+#      rc_failed        set local and overall rc status to failed
+#      rc_failed <num>  set local and overall rc status to <num><num>
+#      rc_reset         clear local rc status (overall remains)
+#      rc_exit          exit appropriate to overall rc status
+. /etc/rc.status
+
+# First reset status of this service
+rc_reset
+
+# Return values acc. to LSB for all commands but status:
+# 0 - success
+# 1 - generic or unspecified error
+# 2 - invalid or excess argument(s)
+# 3 - unimplemented feature (e.g. "reload")
+# 4 - insufficient privilege
+# 5 - program is not installed
+# 6 - program is not configured
+# 7 - program is not running
+# 
+# Note that starting an already running service, stopping
+# or restarting a not-running service as well as the restart
+# with force-reload (in case signalling is not supported) are
+# considered a success.
+
+case "$1" in
+    start)
+	echo -n "Starting service parca_soap daemon"
+	
+	## Start daemon with startproc(8). If this fails
+	## the echo return value is set appropriate.
+
+	# NOTE: startproc return 0, even if service is 
+	# already running to match LSB spec.
+	startproc -p ${PARCA_PID_FILE} -u ${PARCA_SOAP_USER} -g ${PARCA_SOAP_GROUP} ${PARCA_SOAP_BIN} ${PARCA_ARGS}
+
+	# Remember status and be verbose
+	rc_status -v
+	;;
+    stop)
+	echo -n "Shutting down service at daemon"
+
+	kill -TERM `cat ${PARCA_PID_FILE}`
+
+	# Remember status and be verbose
+	rc_status -v
+	;;
+    try-restart)
+	## Stop the service and if this succeeds (i.e. the 
+	## service was running before), start it again.
+	## Note: try-restart is not (yet) part of LSB (as of 0.7.5)
+	$0 status >/dev/null &&  $0 restart
+
+	# Remember status and be quiet
+	rc_status
+	;;
+    restart)
+	## Stop the service and regardless of whether it was
+	## running or not, start it again.
+	$0 stop
+	$0 start
+
+	# Remember status and be quiet
+	rc_status
+	;;
+    force-reload)
+	## Signal the daemon to reload its config. Most daemons
+	## do this on signal 1 (SIGHUP).
+	## If it does not support it, restart.
+	$0 restart
+	;;
+    reload)
+	## Like force-reload, but if daemon does not support
+	## signalling, do nothing (!)
+	;;
+    status)
+	echo -n "Checking for parca_soap daemon: "
+	## Check status with checkproc(8), if process is running
+	## checkproc will return with exit status 0.
+
+	# Status has a slightly different for the status command:
+	# 0 - service running
+	# 1 - service dead, but /var/run/  pid  file exists
+	# 2 - service dead, but /var/lock/ lock file exists
+	# 3 - service not running
+
+	# NOTE: checkproc returns LSB compliant status values.
+	checkproc ${PARCA_SOAP_BIN}
+	rc_status -v
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload}"
+	exit 1
+	;;
+esac
+rc_exit
