@@ -22,12 +22,12 @@ elseif(WIN32)
     )
 else()
     execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('purelib').replace(sys.prefix,'${CMAKE_INSTALL_PREFIX}')+'/parca')"
+        COMMAND ${PYTHON_EXECUTABLE} -c "import sys; import sysconfig; sys.stdout.write(sysconfig.get_path('platlib').replace(sys.prefix,'${CMAKE_INSTALL_PREFIX}')+'/parca')"
         OUTPUT_VARIABLE PYTHON_INSTALL_DIR
     )
 endif(APPLE)
 
-message("Pure python modules will be installed in "${PYTHON_INSTALL_DIR})
+message("Pure python modules will be installed in " ${PYTHON_INSTALL_DIR})
 
 function (py_source target filename)
     add_custom_command(
