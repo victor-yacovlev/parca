@@ -1,18 +1,17 @@
 #include "a.h"
+
 #include <cassert>
 #include <cstdlib>
 
-A::A(int32_t _m, uint16_t _d, uint16_t _g, uint8_t _l) {
-    m = _m;
-    d = _d;
-    g = _g;
-    l = _l;
+
+A::A(int32_t _m, uint16_t _d, uint16_t _g, uint8_t _l)
+    : m(_m), d(_d), g(_g), l(_l)
+{
 }
 
-A::A() {
-    g = d = 0;
-    m = 0.0;
-    l = 0x0;
+A::A()
+    : m(0), d(0), g(0), l(NIL)
+{
 }
 
 

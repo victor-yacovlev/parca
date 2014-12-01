@@ -3,13 +3,17 @@
 
 #include "matrix.h"
 #include "a.h"
-#include <vector>
+
+#include <wchar.h>
+
 #include <deque>
 #include <map>
-#include <utility>
-#include <wchar.h>
 #include <string>
+#include <utility>
+#include <vector>
+
 #include <boost/cstdint.hpp>
+#include <boost/scoped_ptr.hpp>
 
 typedef std::pair<wchar_t,wchar_t> matrix_element_key_t;
 typedef std::map<matrix_element_key_t,int32_t> matrix_t;
@@ -32,7 +36,8 @@ struct alignment_t {
 class Aligner
 {
 public:
-    Aligner();
+    explicit Aligner();
+    explicit Aligner(const Aligner & other);
     void init(uint32_t limit, const std::string &processId, uint32_t matrixInmemoryRows);
     void setScoreMatrix(const matrix_t &matrix);
     void setTempDir(const std::string &path);
@@ -47,9 +52,9 @@ private:
     void paretizeSet(std::deque<A> &total);
     int32_t score(const wchar_t &ch1, const wchar_t &ch2);
     A search_mgd(const std::deque<A> &set, int32_t m, uint16_t g, uint16_t d, bool &found);
-    Matrix *MX;
-    Matrix *MY;
-    Matrix *M;
+    boost::scoped_ptr<Matrix> MX;
+    boost::scoped_ptr<Matrix> MY;
+    boost::scoped_ptr<Matrix> M;
     std::wstring m_SX;
     std::wstring m_SY;
     std::string m_lastError;
@@ -57,7 +62,7 @@ private:
     uint32_t m_limit;
     std::string m_processId;
     uint32_t m_matrixInmemoryRows;
-    std::map<std::pair<wchar_t,wchar_t>, int32_t> scores;
+    matrix_t m_scores;
     bool m_directStageDone;
 };
 

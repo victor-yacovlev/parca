@@ -1,24 +1,42 @@
 #include "pareto.h"
-#include <stdio.h>
-#include <iostream>
-#include <algorithm>
+
 #include <assert.h>
+#include <stdio.h>
 #ifndef WIN32
-#include <sys/stat.h>
-#include <unistd.h>
-#else
-#include <boost/filesystem.hpp>
+#   include <sys/stat.h>
+#   include <unistd.h>
 #endif
+
+#include <algorithm>
+#include <iostream>
 #include <set>
 
+#ifdef WIN32
+#include <boost/filesystem.hpp>
+#endif
+
 Aligner::Aligner()
+    : m_limit(10)
+    , m_processId("0")
+    , m_matrixInmemoryRows(10)
+    , m_directStageDone(false)
 {
-    MX = MY = M = 0;
-    m_lastError = "";
-    m_limit = 10;
-    m_processId = "0";
-    m_matrixInmemoryRows = 10;
-    m_directStageDone = false;
+}
+
+Aligner::Aligner(const Aligner &other)
+    : MX(new Matrix(*other.MX.get()))
+    , MY(new Matrix(*other.MY.get()))
+    , M (new Matrix(*other.M .get()))
+    , m_SX(other.m_SX)
+    , m_SY(other.m_SY)
+    , m_lastError(other.m_lastError)
+    , m_tempDir(other.m_tempDir)
+    , m_limit(other.m_limit)
+    , m_processId(other.m_processId)
+    , m_matrixInmemoryRows(other.m_matrixInmemoryRows)
+    , m_scores(other.m_scores)
+    , m_directStageDone(other.m_directStageDone)
+{
 
 }
 
@@ -29,13 +47,12 @@ void Aligner::init(uint32_t limit, const std::string &processId, uint32_t matrix
     m_processId = processId;
     m_matrixInmemoryRows = matrixInmemoryRows;
     m_lastError = "";
-//    std::cout << "Created aligner\n";
 }
 
 
-void Aligner::setScoreMatrix(const std::map<std::pair<wchar_t,wchar_t>, int32_t> &matrix)
+void Aligner::setScoreMatrix(const matrix_t &matrix)
 {
-    scores = matrix;
+    m_scores = matrix;
 }
 
 void Aligner::setTempDir(const std::string &path)
@@ -50,13 +67,7 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
     m_directStageDone = false;
     m_SY = SY;
     m_SX = SX;
-    if (M!=NULL)
-        delete M;
-    if (MX!=NULL)
-        delete MX;
-    if (MY!=NULL)
-        delete MY;
-    M = MX = MY = NULL;
+
     if (SY.length()==0) {
         m_lastError = "First sequence is empty";
         return;
@@ -65,16 +76,16 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
         m_lastError = "Second sequence is empty";
         return;
     }
-    M  = new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".main.swp", m_matrixInmemoryRows, false );
-    MX = new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".x.swp", m_matrixInmemoryRows, false );
-    MY = new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".y.swp", m_matrixInmemoryRows, false );
+    M .reset(new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".main.swp", m_matrixInmemoryRows, false ));
+    MX.reset(new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".x.swp", m_matrixInmemoryRows, false ));
+    MY.reset(new Matrix( SY.length()+1, SX.length()+1, m_limit, m_tempDir+"/aligner_"+m_processId+".y.swp", m_matrixInmemoryRows, false ));
 
     /* First element initialization */
 
     std::deque<A> M_00, MX_00, MY_00;
-    M_00.push_back(A(0,0,0,NIL));
-    MX_00.push_back(A(0,0,1,DEL_H));
-    MY_00.push_back(A(0,0,1,DEL_V));
+    M_00.push_back(A(0,0,0,A::NIL));
+    MX_00.push_back(A(0,0,1,A::DEL_H));
+    MY_00.push_back(A(0,0,1,A::DEL_V));
 
     M ->set(0,0, M_00);
     MX->set(0,0, MX_00);
@@ -84,9 +95,9 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
 
     for (int x=1; x<=SX.length(); x++) {
         std::deque<A> M_0x, MX_0x, MY_0x;
-        M_0x.push_back(A(0,x,1,DEL_H));
-        MX_0x.push_back(A(0,x,1,DEL_H));
-        MY_0x.push_back(A(0,x,2,DEL_H));
+        M_0x.push_back(A(0,x,1,A::DEL_H));
+        MX_0x.push_back(A(0,x,1,A::DEL_H));
+        MY_0x.push_back(A(0,x,2,A::DEL_H));
         M ->set(0,x,M_0x);
         MX->set(0,x,MX_0x);
         MY->set(0,x,MY_0x);
@@ -96,9 +107,9 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
 
     for (int y=1; y<=SY.length(); y++) {
         std::deque<A> M_y0, MX_y0, MY_y0;
-        M_y0.push_back(A(0,y,1,DEL_V));
-        MX_y0.push_back(A(0,y,2,DEL_V));
-        MY_y0.push_back(A(0,y,1,DEL_V));
+        M_y0.push_back(A(0,y,1,A::DEL_V));
+        MX_y0.push_back(A(0,y,2,A::DEL_V));
+        MY_y0.push_back(A(0,y,1,A::DEL_V));
         M ->set(y,0,M_y0);
         MX->set(y,0,MX_y0);
         MY->set(y,0,MY_y0);
@@ -117,18 +128,18 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
             TD = M ->get(y-1,x-1);
             for (int i=0; i<TX.size(); i++) {
                 TX[i].d ++;
-                TX[i].l = DEL_H;
+                TX[i].l = A::DEL_H;
             }
             for (int i=0; i<TY.size(); i++) {
                 TY[i].d ++;
-                TY[i].l = DEL_V;
+                TY[i].l = A::DEL_V;
             }
             for (int i=0; i<TD.size(); i++) {
                 wchar_t Sx = SX[x-1];
                 wchar_t Sy = SY[y-1];
                 int scoreToAdd = score(Sx, Sy);
                 TD[i].m += int32_t(scoreToAdd);
-                TD[i].l = NO_DEL;
+                TD[i].l = A::NO_DEL;
             }
             T.clear();
             T.insert(T.end(), TX.begin(), TX.end());
@@ -142,11 +153,11 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
             TD = M ->get(y  ,x  );
             for (int i=0; i<TX.size(); i++) {
                 TX[i].d ++;
-                TX[i].l = DEL_H;
+                TX[i].l = A::DEL_H;
             }
             for (int i=0; i<TD.size(); i++) {
                 TD[i].g ++;
-                TD[i].l = NO_DEL;
+                TD[i].l = A::NO_DEL;
             }
             T.clear();
             T.insert(T.end(), TX.begin(), TX.end());
@@ -159,11 +170,11 @@ void Aligner::directStage(const std::wstring &SY, const std::wstring &SX)
             TD = M ->get(y  ,x  );
             for (int i=0; i<TY.size(); i++) {
                 TY[i].d ++;
-                TY[i].l = DEL_V;
+                TY[i].l = A::DEL_V;
             }
             for (int i=0; i<TD.size(); i++) {
                 TD[i].g ++;
-                TD[i].l = NO_DEL;
+                TD[i].l = A::NO_DEL;
             }
             T.clear();
             T.insert(T.end(), TY.begin(), TY.end());
@@ -240,7 +251,7 @@ void Aligner::paretizeSet(std::deque<A> &total)
 
 int32_t Aligner::score(const wchar_t &ch1, const wchar_t &ch2)
 {
-    if (scores.size()==0) {
+    if (m_scores.size()==0) {
         if (m_lastError=="") {
             m_lastError = "Score matrix is empty";
         }
@@ -250,11 +261,11 @@ int32_t Aligner::score(const wchar_t &ch1, const wchar_t &ch2)
         
         std::pair<wchar_t,wchar_t> pair(ch1,ch2);
         std::pair<wchar_t,wchar_t> pair2(ch2,ch1);
-        if (scores.count(pair)) {
-            return scores[pair];
+        if (m_scores.count(pair)) {
+            return m_scores[pair];
         }
-        else if (scores.count(pair2)) {
-            return scores[pair2];
+        else if (m_scores.count(pair2)) {
+            return m_scores[pair2];
         }
         else {
             if (m_lastError.length()==0) {
@@ -317,11 +328,11 @@ std::deque< std::pair<int16_t,int16_t> > Aligner::getAlignment(uint32_t mainElem
     while ( row>0 && col>0 ) {
         assert ( e.l > 0 );
         p = Undefined;
-        if ( (e.l&DEL_V)>0 )
+        if ( (e.l & A::DEL_V)>0 )
             p = Vertical;
-        else if ( (e.l&DEL_H)>0 )
+        else if ( (e.l & A::DEL_H)>0 )
             p = Horizontal;
-        else if ( (e.l&NO_DEL)>0 )
+        else if ( (e.l & A::NO_DEL)>0 )
             p = Diagonal;
         assert ( p!= Undefined );
         assert ( matrix=='d' || matrix=='v' || matrix=='h' );
@@ -472,13 +483,7 @@ alignment_info_t Aligner::getInfo(uint32_t no)
 }
 
 void Aligner::reset()
-{
-    if (M!=NULL)
-        delete M;
-    if (MX!=NULL)
-        delete MX;
-    if (MY!=NULL)
-        delete MY;
+{    
 #ifdef WIN32
     if (boost::filesystem3::exists("aligner_"+m_processId+".main.swp")) {
         boost::filesystem3::remove("aligner_"+m_processId+".main.swp");
@@ -501,7 +506,9 @@ void Aligner::reset()
         unlink(std::string("aligner_"+m_processId+".y.swp").c_str());
     }
 #endif
-    M = MX = MY = NULL;
+    M.reset();
+    MY.reset();
+    MX.reset();
     m_lastError = "";
     m_directStageDone = false;
 }

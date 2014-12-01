@@ -2,8 +2,10 @@
 #define MATRIX_H
 
 #include "a.h"
-#include <string>
+
 #include <deque>
+#include <string>
+
 #ifdef WIN32
 #include <boost/filesystem.hpp>
 #endif

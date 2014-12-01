@@ -101,7 +101,7 @@ std::deque<A> Matrix::get(int row, int col)
         std::deque<A> result;
         for (int i=0; i<m_limit; i++) {
             A a = m_firstColumn[linearIndex+i];
-            if ( (a.l & STOP_FLAG) > 0 )
+            if ( (a.l & A::STOP_FLAG) > 0 )
                 break;
             result.push_back(a);
         }
@@ -113,7 +113,7 @@ std::deque<A> Matrix::get(int row, int col)
         std::deque<A> result;
         for (int i=0; i<m_limit-1; i++) {
             A a = m_storedRows[linearIndex+i];
-            if ( (a.l & STOP_FLAG) > 0 )
+            if ( (a.l & A::STOP_FLAG) > 0 )
                 break;
             result.push_back(a);
         }
@@ -132,7 +132,7 @@ std::deque<A> Matrix::getLast()
 void Matrix::set(int row, int col, const std::deque<A> & value)
 {
     A stop;
-    stop.l = STOP_FLAG;
+    stop.l = A::STOP_FLAG;
 
     assert ( row>=0 );
     assert ( row<m_rows );
@@ -279,7 +279,7 @@ void Matrix::writeStorageToFile()
             for (int j=0; j<m_limit; j++) {
                 int linearIndex = row*m_columns*m_limit + col*m_limit + j;
                 A a = m_storedRows[linearIndex];
-                if ( (a.l & STOP_FLAG) > 0 )
+                if ( (a.l & A::STOP_FLAG) > 0 )
                     break;
                 set.push_back(a);
             }

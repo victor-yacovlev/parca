@@ -1,28 +1,27 @@
 #ifndef PARCA_H
 #define PARCA_H
 
-#include <string>
+#include "pareto.h"
+
+#include <list>
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
-#include <list>
-#include <utility>
-#include <map>
-#include <string>
+
+#include <boost/scoped_ptr.hpp>
+
 #include <boost/python/dict.hpp>
 #include <boost/python/list.hpp>
 #include <boost/python/object.hpp>
-
-#include "pareto.h"
-
-class Aligner;
 
 
 class aligner
 {
 public:
-    aligner();
-    aligner(unsigned int limit, const std::string & process_id, unsigned int memory_usage);
+    explicit aligner();
+    explicit aligner(const aligner & other);
+    explicit aligner(unsigned int limit, const std::string & process_id, unsigned int memory_usage);
     void init(unsigned int limit, const std::string & process_id, unsigned int memory_usage);
     void set_score_matrix(const matrix_t & matrix);
     void set_temporary_directory(const std::string &path);
@@ -34,9 +33,9 @@ public:
     std::string get_last_error() const;
     void reset();
     void selftest_matrix();
-    ~aligner();
+
 private:
-    Aligner *m_aligner;
+    boost::scoped_ptr<Aligner> m_aligner;
 
 
 };

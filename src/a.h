@@ -1,16 +1,9 @@
 #ifndef A_H
 #define A_H
 
-#include <boost/cstdint.hpp>
 #include <vector>
 
-#define NIL 0x0
-#define NO_DEL 0x1
-#define DEL_H 0x2
-#define DEL_V 0x4
-
-#define STOP_FLAG 0x8
-
+#include <boost/cstdint.hpp>
 
 struct A {
     /* matches score */
@@ -28,6 +21,12 @@ struct A {
     A();
 
     bool maj(const A& other) const;
+
+    static const uint8_t NIL        =   0x0;
+    static const uint8_t NO_DEL     =   0x1;
+    static const uint8_t DEL_H      =   0x2;
+    static const uint8_t DEL_V      =   0x4;
+    static const uint8_t STOP_FLAG  =   0x8;
 };
 
 

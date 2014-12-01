@@ -1,22 +1,30 @@
-
-#include <Python.h>
+#include "matrix.h"
 #include "_parca.h"
 #include "pareto.h"
-#include "matrix.h"
-#include <iostream>
-#include <boost/python.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-#include <boost/python/suite/indexing/map_indexing_suite.hpp>
+
 #include <wchar.h>
 
+#include <iostream>
+
+#include <Python.h>
+
+#include <boost/python.hpp>
+#include <boost/python/suite/indexing/map_indexing_suite.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 aligner::aligner()
+    : m_aligner(new Aligner())
 {
-    m_aligner = new Aligner();
+}
+
+aligner::aligner(const aligner &other)
+    : m_aligner(new Aligner(*other.m_aligner))
+{
 }
 
 aligner::aligner(unsigned int limit, const std::string & processId, unsigned int matrixInmemoryRows)
+    : m_aligner(new Aligner())
 {
-    m_aligner = new Aligner();
     m_aligner->init((uint32_t)limit,processId,(uint32_t)matrixInmemoryRows);
 }
 
@@ -101,10 +109,6 @@ void aligner::reset()
     m_aligner->reset();
 }
 
-aligner::~aligner()
-{
-    delete m_aligner;
-}
 
 void aligner::selftest_matrix()
 {

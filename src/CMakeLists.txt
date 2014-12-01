@@ -18,7 +18,7 @@ set(HEADERS
     a.h
     matrix.h
     pareto.h
-	_parca.h
+    _parca.h
 )
 
 set(SOURCES
@@ -27,6 +27,8 @@ set(SOURCES
     pareto.cpp
     _parca.cpp
 )
+
+set(CMAKE_CXX_FLAGS "-std=c++03" ${CMAKE_CXX_FLAGS})
 
 python_add_module(_parca ${SOURCES})
 if(WIN32)
